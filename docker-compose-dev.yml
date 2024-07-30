@@ -1,0 +1,98 @@
+version: "3.8"
+
+services:
+    # MongoDB 5.0.1
+    mongodb:
+        container_name: mongo
+        image: mongo:5.0.1
+        restart: always
+        env_file: 
+            - ./backend/.env
+        ports:
+            - 27017:27017
+        volumes:
+            - my_mongodb_data_dev:/data/db
+            - ./conf/mongodb/scripts/:/docker-entrypoint-initdb.d/
+        healthcheck:
+            test: echo 'db.runCommand("ping").ok' | mongo 10.10.10.60:27017/test --quiet
+            interval: 30s
+            timeout: 10s
+            retries: 3
+        networks: 
+            - my_express_app_network
+
+
+    # Mongo Express
+    mongo-express:
+        image: mongo-express
+        container_name: mongo-express
+        depends_on:
+            - mongodb
+        restart: always
+        ports:
+            - 8081:8081
+        env_file: 
+            - ./backend/.env
+        healthcheck:
+            test:  wget --quiet --tries=3 --spider http://${ME_CONFIG_MONGODB_AUTH_USERNAME}:${ME_CONFIG_MONGODB_AUTH_PASSWORD}3@10.10.10.60:8081 || exit 1
+            interval: 30s
+            timeout: 10s
+            retries: 3
+        networks: 
+            - my_express_app_network
+
+    # API
+    api:
+        container_name: api
+        depends_on:
+            - mongodb
+        restart: always
+        build:
+            context: ./backend
+            dockerfile: ./Dockerfile
+        ports:
+            - 3001:3001
+        volumes:
+            - ./backend/src:/opt/src
+#            - ./backend/node_modules:/opt/node_modules
+            # - ./my_mongodb_data_dev/:/opt/data
+        command: ["npm", "run", "start"]
+        networks:
+            - my_express_app_network
+
+    maildev:
+        image: maildev/maildev
+        restart: always
+        environment:
+            - TZ=Europe/France
+            - MAILDEV_WEB_PORT=1080
+            - MAILDEV_SMTP_PORT=1025
+        ports:
+            - "1080:1080"
+            - "1025:1025"
+        logging:
+            driver: "json-file"
+            options:
+                max-size: "1m"
+        networks:
+            - my_express_app_network
+
+    redis:
+        container_name: redis_server
+        image: redis:alpine
+        ports:
+          - 6379:6379
+        volumes:
+            - ./redis_data_dev/:/data/redis_data
+        networks:
+            - my_express_app_network
+
+volumes:
+    my_mongodb_data_dev:
+        driver: local
+    redis_data_dev:
+        driver: local
+networks: 
+    my_express_app_network:
+        name: my_express_app_network
+
