@@ -2,29 +2,14 @@ version: "3.8"
 
 services:
 
-    # API
-    api:
-        container_name: api
-        depends_on:
-            - mongo
-        restart: always
-        build:
-            context: ./backend
-            dockerfile: ./Dockerfile
-        ports:
-            - 3001:3001
-        volumes:
-            - ./back/src:/opt/src
-        command: ["npm", "start"]
-        networks:
-            - my_express_app_network
-
     # Client
     client:
         container_name: client
         links:
             - api
         restart: always
+        env_file:
+            - ./frontend/.env
         build:
             context: ./frontend
             dockerfile: ./Dockerfile
@@ -35,10 +20,13 @@ services:
             - my_express_app_network
         ports:
             - 3000:3000
+
     mongo:
         container_name: mongo
         image: 'mongo:latest'
         restart: always
+        env_file:
+            - ./backend/.env
         environment:
             MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
             MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
@@ -67,6 +55,8 @@ services:
         restart: always
         ports:
             - 8081:8081
+        env_file:
+            - ./backend/.env
         environment:
             ME_CONFIG_MONGODB_AUTH_USERNAME: ${ME_CONFIG_MONGODB_AUTH_USERNAME}
             ME_CONFIG_MONGODB_AUTH_PASSWORD: ${ME_CONFIG_MONGODB_AUTH_PASSWORD}
@@ -90,6 +80,51 @@ services:
         networks:
             - my_express_app_network
 
+    # API
+    api:
+        container_name: api
+        depends_on:
+            - mongo
+        restart: always
+        env_file:
+            - ./backend/.env
+        build:
+            context: ./backend
+            dockerfile: ./Dockerfile
+        ports:
+            - 3001:3001
+        volumes:
+            - ./backend/src:/opt/src
+        command: ["npm", "start"]
+        networks:
+            - my_express_app_network
+
+    maildev:
+        image: maildev/maildev
+        restart: always
+        environment:
+            - TZ=Europe/France
+            - MAILDEV_WEB_PORT=1080
+            - MAILDEV_SMTP_PORT=1025
+        ports:
+            - "1080:1080"
+            - "1025:1025"
+        logging:
+            driver: "json-file"
+            options:
+                max-size: "1m"
+        networks:
+            - my_express_app_network
+
+    redis:
+        container_name: redis_server
+        image: redis:alpine
+        ports:
+          - 6379:6379
+        volumes:
+            - ./redis_data_dev/:/data/redis_data
+        networks:
+            - my_express_app_network
 networks:
     my_express_app_network:
         driver: bridge

@@ -47,6 +47,8 @@ services:
         depends_on:
             - mongodb
         restart: always
+        env_file:
+            - ./backend/.env
         build:
             context: ./backend
             dockerfile: ./Dockerfile
