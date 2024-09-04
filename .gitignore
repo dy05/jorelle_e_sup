@@ -29,3 +29,6 @@ yarn-error.log*
 uploads/
 build
 docker-data/
+redis_data_dev/
+my_mongodb_data_dev/
+
