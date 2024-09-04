@@ -50,6 +50,8 @@ services:
     mongo-express:
         image: 'mongo-express:latest'
         container_name: mongo-express
+        depends_on:
+            - mongo
         links:
             - mongo
         restart: always
@@ -85,6 +87,10 @@ services:
         container_name: api
         depends_on:
             - mongo
+        links:
+            - mongo
+            - maildev
+            - redis
         restart: always
         env_file:
             - ./backend/.env
@@ -95,11 +101,12 @@ services:
             - 3001:3001
         volumes:
             - ./backend/src:/opt/src
-        command: ["npm", "start"]
+        command: ["npm", "run", "start"]
         networks:
             - my_express_app_network
 
     maildev:
+        container_name: maildev
         image: maildev/maildev
         restart: always
         environment:
@@ -117,15 +124,14 @@ services:
             - my_express_app_network
 
     redis:
-        container_name: redis_server
+        container_name: redis
         image: redis:alpine
         ports:
           - 6379:6379
         volumes:
-            - ./redis_data_dev/:/data/redis_data
+            - ./redis_data/:/data/redis_data
         networks:
             - my_express_app_network
 networks:
     my_express_app_network:
         driver: bridge
-

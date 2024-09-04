@@ -31,7 +31,7 @@ On the second one, run:
 set variable's value in the recommended files
 
 Run the following command for development 
-```docker compose --env-file ./backend/.env -f docker-compose-dev.yml up --build --force-recreate```
+```docker compose --env-file ./backend/.env --env-file ./frontend/.env -f docker-compose-dev.yml up --build --force-recreate```
 
 And go in frontend directory and run 
 ```npm run start```
